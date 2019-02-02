@@ -5,15 +5,21 @@ class Node():
         self.parent = parent
         self.position = position
 
-        # G is the distance between the current node and the start node.
         self.g = 0
-        # H is the heuristic — estimated distance from the current node to the end node.
         self.h = 0
-        # F is the total cost of the node.
         self.f = 0
 
     def __eq__(self, other):
         return self.position == other.position
+
+
+def path(current_node):
+    path = []
+    current = current_node
+    while current is not None:
+        path.append(current.position)
+        current = current.parent
+    return path[::-1]
 
 def is_invalid_position(position, maze):
     if position[0] > (len(maze) - 1) \
@@ -26,7 +32,6 @@ def is_invalid_position(position, maze):
 
 
 def find_way(maze, start, end):
-
     start_node = Node(None, start)
     end_node = Node(None, end)
 
@@ -34,33 +39,35 @@ def find_way(maze, start, end):
     close_list = []
 
     open_list.append(start_node)
+    
+    outer_iterations = 0
+    max_iterations = (len(maze) // 2) ** 2
 
     while len(open_list) > 0:
-
+        outer_iterations += 1
+        
         current_node = open_list[0]
         current_index = 0
         for index, item in enumerate(open_list):
             if current_node.f > item.f:
                 current_node = item
                 current_index = index
+                
+        if outer_iterations > max_iterations:
+            return path(current_node)
 
         open_list.pop(current_index)
         close_list.append(current_node)
 
         if current_node == end_node:
-            path = []
-            current = current_node
-            while current is not None:
-                path.append(current.position)
-                current = current.parent
-            return path[::-1] # Return reversed path
+            return path(current_node)
 
         children = []
         for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1)]: # Adjacent squares
 
             node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
 
-            if is_invalid_position(node_position, maze):
+            if node_position[0] > (len(maze) - 1) or node_position[0] < 0 or node_position[1] > (len(maze[len(maze)-1]) -1) or node_position[1] < 0:
                 continue
 
             if maze[node_position[0]][node_position[1]] != 0:
@@ -70,19 +77,16 @@ def find_way(maze, start, end):
 
             children.append(new_node)
 
-        for child in children:
-
-            for closed_child in close_list:
-                if child == closed_child:
-                    continue
+        for child in children:            
+            if len([closed_child for closed_child in close_list if closed_child == child]) > 0:
+                continue
 
             child.g = current_node.g + 1
             child.h = ((child.position[0] - end_node.position[0]) ** 2) + ((child.position[1] - end_node.position[1]) ** 2)
             child.f = child.g + child.h
 
-            for open_node in open_list:
-                if child == open_node and child.g > open_node.g:
-                    continue
+            if len([open_node for open_node in open_list if child == open_node and child.g > open_node.g]) > 0:
+                continue
 
             open_list.append(child)
 
@@ -90,22 +94,18 @@ def find_way(maze, start, end):
 def main():
 
     maze = [[0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
+            [0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
+            [0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
+            [0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
+            [0, 0, 1, 0, 1, 1, 1, 0, 0, 0],
+            [0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
+            [0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
+            [0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
+            [0, 0, 1, 1, 1, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
 
     start = (0, 0)
     end = (7, 6)
-
-    path = find_way(maze, start, end)
-
-    maze = maze[:]
 
     for x,y in (start, end):
         maze[x][y] = 'X'
@@ -113,11 +113,12 @@ def main():
     print(np.matrix(maze))
     print()
 
+    path = find_way(maze, start, end)
+
     for x,y in path:
         maze[x][y] = 'X'
 
     print(np.matrix(maze))
 
 
-if __name__ == '__main__':
-    main()
+main()
